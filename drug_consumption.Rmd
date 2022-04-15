@@ -1,0 +1,231 @@
+---
+title: "drug_consumption"
+author: "Nuno Fernandes & Beatriz Arcipestre"
+date: "16/03/2022"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Import library
+```{r, results="hide", warning=FALSE, message=FALSE}
+packages <- c("dplyr", "tibble", "tidyr", "purrr", "FactoMineR", "ggplot2", "lm.beta", "olsrr", "rcompanion", "FSA", "caret", "tidyverse", "reticulate", "factoextra", "MASS", "ggeffects", "effects", "rio", "foreign", "Hmisc","reshape2", "misty", "lavaan", "semPlot", "sjPlot","dlookr","PerformanceAnalytics","lubridate")
+
+installed_packages <- packages %in% row.names(installed.packages())
+if (any(installed_packages == FALSE)) {
+  install.packages(packages[!installed.packages])
+}
+
+lapply(packages, library, character.only = TRUE)
+
+``` 
+
+### set wd
+```{r, results='hide', warning=FALSE, message=FALSE}
+setwd("~/2021/Artigo_Covid-19_Daniela")
+```
+### read txt
+```{r}
+df = read.delim2("drug_consumption.txt",sep = ",")
+
+```
+
+### recode independent variables
+```{r}
+df %>% mutate(age=recode(age, '-0.07854'='25-34',"-0.95197"="18-24", "0.49788" = " 35-44","1.09449" = "45-54", "1.82213" = "55-64", "2.59171" = "65+"),
+              
+              gender=recode(gender, '0.48246'='female', '-0.48246'='male'),
+              
+              education=recode(education, "-0.05921" = "Professional certificate/diploma", "-0.61113" = "Some college or university, no certificate or degree", "-1.22751" = " Left school at 18 years", "-1.43719" = "Left school at 17 years", "-1.73790" = "Left school at 16 years ", "-2.43591" = "Left school before 16 years", "0.45468" = "University degree", "1.16365" = "Masters degree",  "1.98437" = "Doctorate degree"),
+              
+              country = recode(country, "-0.09765" = "Australia", "-0.28519"="Other", "-0.46841" = "New Zealand", "-0.57009" = "USA",  "0.21128" = "Republic of Ireland",  "0.24923" = "Canada",  "0.96082" = "UK"),
+              
+              ethnicity = recode(ethnicity, "-0.22166" = "Mixed-White/Black", "-0.31685" = "White", "-0.50212" = "Asian", "-1.10702" = "Black",  "0.11440" = "Other",  "0.12600" = "Mixed-White/Asian",  "1.90725" = "Mixed-Black/Asian"),
+              
+              neuroticism = recode(neuroticism,"-0.05188" = 35, "-0.14882" = 34, "-0.24649" = 33, "-0.34799" = 32, "-0.46725" = 31, "-0.58016" = 30, "-0.67825" = 29, "-0.79151" = 28, "-0.92104" = 27, "-1.05308" = 26, "-1.19430" = 25, "-1.32828" = 24, "-1.43907" = 23, "-1.55078" = 22, "-1.69163" = 21, "-1.86962" = 20,
+ "-2.05048" = 19, "-2.21844" = 18, "-2.34360" = 17, "-2.42317" = 16, "-2.52197" = 15, "-2.75696" = 14, "-3.15735" = 13, "-3.46436" = 12,
+ "0.04257" = 36,  "0.13606" = 37,  "0.22393" = 38,  "0.31287" = 39,  "0.41667" = 40,  "0.52135" = 41,  "0.62967" = 42,  "0.73545" = 43, 
+"0.82562" = 44,  "0.91093" = 45,  "1.02119" = 46,  "1.13281" = 47,  "1.23461" = 48,  "1.37297" = 49,  "1.49158" = 50,  "1.60383" = 51, 
+ "1.72012" = 52,  "1.83990" = 53,  "1.98437" = 54,  "2.12700" = 55,  "2.28554" = 56,  "2.46262" = 57,  "2.61139" = 58,  "2.82196" = 59, 
+"3.27393"=60),
+
+              extraversion = recode(extraversion,"-0.15487" = 39, "-0.30033" = 38, "-0.43999" = 37, "-0.57545" = 36, "-0.69509" = 35, "-0.80615" = 34, "-0.94779" = 33, "-1.09207" = 32,
+"-1.23177" = 31, "-1.37639" = 30, "-1.50796" = 29, "-1.63340" = 28, "-1.76250" = 27, "-1.92173" = 26, "-2.03972" = 25, "-2.11437" = 24, "-2.21069" = 23, "-2.32338" = 22, "-2.44904" = 21, "-2.53830" = 20, "-2.72827" = 19, "-3.00537" = 18, "-3.27393" = 16, "0.00332" = 40, "0.16767" = 41,  "0.32197" = 42,  "0.47617" = 43,  "0.63779" = 44,  "0.80523" = 45,  "0.96248" = 46,  "1.11406" = 47,  "1.28610" = 48, "1.45421" = 49,  "1.58487" =50,  "1.74091" = 51,  "1.93886" = 52, "2.12700" = 53 , "2.32338" = 54,  "2.57309" = 55,  "2.85950" = 56 , "3.00537" = 57 , "3.27393" = 58 ),
+              
+              openness = recode(openness, "-0.01928" =  46,"-0.17779" = 45 ,"-0.31776" = 44 ,"-0.45174" = 43, "-0.58331" =  42,"-0.71727" = 41 ,"-0.84732" = 40,"-0.97631" = 39, "-1.11902" = 38,"-1.27553" = 37,"-1.42424" = 36 ,"-1.55521" = 35,"-1.68062" = 34,"-1.82919" = 33 ,"-1.97495" = 32 ,"-2.09015" = 31 ,"-2.21069" = 30, "-2.39883" = 29, "-2.63199" = 28,"-2.85950" = 26,"-3.27393" = 24 ,"0.14143" = 47 ,"0.29338" = 48 ,"0.44585" = 49 ,"0.58331" =50 ,"0.72330" = 51  ,"0.88309" = 52  ,"1.06238" = 53  ,"1.24033" = 54  ,"1.43533" = 55  ,"1.65653" = 56 ,"1.88511" = 57 ,"2.15324" =58  ,"2.44904" = 59  ,"2.90161" = 60 ),
+              
+              agreeableness = recode(agreeableness, "-0.01729" = 43, "-0.15487" = 42, "-0.30172" = 41, "-0.45321" = 40, "-0.60633" = 39, "-0.76096" = 38, "-0.91699" = 37, "-1.07533" = 36, "-1.21213" = 35, "-1.34289" = 34, "-1.47955" = 33, "-1.62090" = 32, "-1.77200" = 31, "-1.92595" = 30, "-2.07848" = 29, "-2.21844" = 28, "-2.35413" = 27, "-2.53830" = 26, "-2.70172" = 25, "-2.78793" = 24,"-2.90161" = 23, "-3.00537" = 18, "-3.15735" = 16, "-3.46436" = 12, "0.13136" = 44, "0.28783" = 45,  "0.43852" = 46 ,"0.59042" = 47,  "0.76096" = 48,  "0.94156" = 49, "1.11406" = 50,  "1.28610" = 51,  "1.45039" = 52,  "1.61108" = 53,  "1.81866" = 54,"2.03972" = 55,  "2.23427" =56, "2.46262" = 57,  "2.75696" = 58,  "3.15735" = 59 , "3.46436" = 60),
+
+              conscientiousness = recode(conscientiousness, "-0.00665" = 42, "-0.14277" = 41, "-0.27607" = 40, "-0.40581" = 39, "-0.52745" = 38, "-0.65253" = 37, "-0.78155" = 36, "-0.89891" = 35, "-1.01450" = 34, "-1.13788" = 33, "-1.25773" = 32, "-1.38502" = 31, "-1.51840" = 30, "-1.64101" = 29, "-1.78169" = 28, "-1.92173" = 27, "-2.04506" = 26, "-2.18109" = 25, "-2.30408" = 24, "-2.42317" = 23, "-2.57309" = 22, "-2.72827" = 21, "-2.90161" = 20, "-3.15735" = 19, "-3.46436" = 17, "0.12331" = 43,  "0.25953" = 44,  "0.41594" = 45,  "0.58489" = 46, "0.75830" = 47,  "0.93949" = 48,  "1.13407" = 49,  "1.30612" = 50,  "1.46191" = 51, "1.63088" = 52, "1.81175" = 53, "2.04506" = 54, "2.33337" = 55, "2.63199" = 56, "3.00537" = 57, "3.46436" = 58)
+
+              ) ->df
+```
+
+# recode depedent variables (7-point Likert scale)
+```{r}
+
+df[,14:32] = apply(df[14:32], MARGIN =2, 
+                   function(x) recode(x, "CL0" = 1, "CL1" = 2, "CL2" = 3, "CL3" = 4, "CL4" = 5, "CL5" = 6, "CL6" = 7))
+
+```
+
+# drop impulsiveness & sensation (missing the original vals)
+```{r}
+df = df[,-c(13,12)]
+```
+
+# EDA
+
+```{r}
+str(df)
+```
+
+# EDA
+```{r}
+describe(df)
+```
+```{r}
+normality(df)
+```
+
+```{r}
+plot_normality(df) 
+```
+
+#df with NEO-PI-R dimension
+```{r}
+df_iv = df[,7:11]
+```
+
+#df with type of drug consumption
+```{r}
+df_dv = df[,12:30]
+```
+
+
+```{r}
+library("PerformanceAnalytics")
+
+chart.Correlation(df_iv, histogram=TRUE, pch=19)
+```
+
+```{r}
+library(psych)
+
+corPlot(df_dv, cex = 0.4)
+```
+
+#PCA iv
+```{r}
+pca <- PCA(df_iv, graph=F)
+
+get_eig(pca)
+```
+```{r}
+fviz_screeplot(pca, addlabels = TRUE, ylim = c(0, 50))
+```
+
+
+```{r}
+var <- get_pca_var(pca)
+
+fviz_pca_var(pca, col.var="contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE 
+)
+```
+
+```{r}
+summary(pca,nbelements = 20, ncp = 4)
+```
+
+# PCA Drugs
+
+```{r}
+df_dv = df[,12:30]
+pca <- PCA(df_dv, graph=F)
+
+get_eig(pca)
+```
+
+```{r}
+fviz_screeplot(pca, addlabels = TRUE, ylim = c(0, 50))
+```
+
+
+```{r}
+options(ggrepel.max.overlaps = Inf) 
+var <- get_pca_var(pca)
+
+fviz_pca_var(pca, col.var="contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE, alpha = 0.3)
+```
+```{r}
+summary(pca,nbelements = 20, ncp = 5)
+```
+
+# CFA
+```{r}
+model<-'
+soft_drugs=~amphet + amyl + benzos + cannabis + coke + ecstasy + ketamine + legalh + lsd +  mushrooms  + nicotine + vsa
+legal_drugs=~choc + alcohol + caff
+hard_drugs=~crack + heroin + meth'
+
+fit<- cfa(model, data=df_dv)
+summary(fit, fit.measures=T,standardized=T)
+
+```
+```{python}
+string = "soft_drugs=~amphet + amyl + benzos + cannabis + coke + ecstasy + ketamine + legalh + lsd +  mushrooms  + nicotine + vsa\nlegal_drugs=~choc + alcohol + caff\nhard_drugs=~crack + heroin + meth"
+
+print(string.replace("+", ","))
+
+```
+
+# Mutate dimensions
+```{r}
+df %>%
+  #dv
+  rowwise %>%
+  mutate(soft_drugs = mean(c(amphet , amyl , benzos , cannabis , coke , ecstasy , ketamine , legalh , lsd ,  mushrooms  , nicotine , vsa))) %>%
+  mutate(legal_drugs = mean(c(choc , alcohol , caff))) %>% 
+  mutate(hard_drugs = mean(c(crack , heroin , meth))) %>% 
+  
+  #iv
+  mutate(agreeableness_conscientiousness = mean(c(agreeableness, conscientiousness))) -> df
+
+```
+
+# MLR
+
+#hard drugs
+```{r}
+model_hard_drugs <- lm(hard_drugs ~ agreeableness_conscientiousness+ neuroticism + extraversion+openness+age+gender, data = df)
+
+summary(model_hard_drugs)
+lm.beta(model_hard_drugs)
+confint(model_hard_drugs)
+
+```
+#soft_drugs
+```{r}
+model_soft_drugs <- lm(soft_drugs ~ agreeableness_conscientiousness+ neuroticism + extraversion+openness+age+gender, data = df)
+
+summary(model_soft_drugs)
+lm.beta(model_soft_drugs)
+confint(model_soft_drugs)
+```
+#soft_drugs
+```{r}
+model_legal_drugs <- lm(legal_drugs ~ agreeableness_conscientiousness+ neuroticism + extraversion+openness+age+gender, data = df)
+
+summary(model_legal_drugs)
+lm.beta(model_legal_drugs)
+confint(model_legal_drugs)
+
+```
+
+
